@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Mon Agenda Quotidien</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F9F8FF;color:#1a1a1a;font-size:15px;}
+.app{max-width:480px;margin:0 auto;padding:1rem;}
+.header{background:#2D2D6B;color:#fff;border-radius:14px;padding:1rem 1.25rem;margin-bottom:1rem;}
+.header h1{font-size:17px;font-weight:500;margin-bottom:10px;}
+.date-select{width:100%;padding:9px 12px;border-radius:10px;border:none;background:#fff;color:#2D2D6B;font-size:15px;font-weight:500;}
+.day-label{font-size:12px;color:rgba(255,255,255,.7);margin-top:6px;text-align:center;}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1rem;}
+.stat{background:#fff;border-radius:12px;padding:12px;text-align:center;border:0.5px solid #E0DFF5;}
+.stat-n{font-size:24px;font-weight:500;color:#2D2D6B;}
+.stat-l{font-size:11px;color:#888;margin-top:2px;}
+.tab-row{display:flex;gap:6px;margin-bottom:1rem;}
+.tab{flex:1;padding:8px;border-radius:10px;border:0.5px solid #ddd;background:transparent;cursor:pointer;font-size:13px;color:#666;}
+.tab.active{background:#2D2D6B;color:#fff;border-color:#2D2D6B;font-weight:500;}
+.section{display:none;}
+.section.active{display:block;}
+.card{background:#fff;border:0.5px solid #E0DFF5;border-radius:14px;padding:1rem;margin-bottom:1rem;}
+.section-title{font-size:11px;font-weight:500;color:#888;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;}
+.slot{border-bottom:0.5px solid #F0EFF8;padding:10px 0;}
+.slot:last-child{border-bottom:none;padding-bottom:0;}
+.slot-time{font-size:11px;font-weight:500;color:#3C3489;background:#EEEDFE;padding:2px 8px;border-radius:20px;display:inline-block;margin-bottom:6px;}
+.slot-fields{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;}
+.slot-input{width:100%;padding:10px 9px;border-radius:9px;border:0.5px solid #ddd;background:#F9F8FF;color:#1a1a1a;font-size:14px;font-family:inherit;}
+.slot-input:focus{outline:2px solid #7F77DD;border-color:#7F77DD;background:#fff;}
+.slot-select{width:100%;padding:10px 9px;border-radius:9px;border:0.5px solid #ddd;background:#F9F8FF;color:#666;font-size:13px;font-family:inherit;}
+.slot-select:focus{outline:2px solid #7F77DD;}
+.slot-select.fait{background:#E1F5EE;color:#0F6E56;border-color:#5DCAA5;}
+.slot-select.planb{background:#FAEEDA;color:#854F0B;border-color:#FAC775;}
+.slot-select.encours{background:#E6F1FB;color:#185FA5;border-color:#85B7EB;}
+.slot-select.nonfait{background:#FAECE7;color:#993C1D;border-color:#F0997B;}
+.planb-wrap{margin-top:4px;}
+.planb-input{width:100%;padding:8px 9px;border-radius:9px;border:0.5px solid #FAC775;background:#FAEEDA;color:#854F0B;font-size:12px;font-family:inherit;}
+.planb-input::placeholder{color:#EF9F27;}
+.planb-input:focus{outline:2px solid #FAC775;}
+.hab-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:0.5px solid #F0EFF8;}
+.hab-row:last-child{border-bottom:none;}
+.hab-date{font-size:11px;color:#888;min-width:72px;}
+.hab-act{flex:1;font-size:13px;}
+.badge{font-size:10px;padding:2px 7px;border-radius:20px;white-space:nowrap;}
+.b-fait{background:#E1F5EE;color:#0F6E56;}
+.b-planb{background:#FAEEDA;color:#854F0B;}
+.b-non{background:#FAECE7;color:#993C1D;}
+.b-en{background:#E6F1FB;color:#185FA5;}
+.empty{text-align:center;padding:2rem 1rem;color:#aaa;font-size:13px;}
+.obj-row{padding:10px 0;border-bottom:0.5px solid #F0EFF8;}
+.obj-row:last-child{border-bottom:none;}
+.obj-top{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.obj-name{flex:1;font-size:13px;}
+.pbar{height:6px;background:#EEE;border-radius:3px;overflow:hidden;}
+.pfill{height:100%;background:#1D9E75;border-radius:3px;transition:width .3s;}
+.add-obj{display:flex;gap:6px;margin-top:10px;}
+.add-obj input{flex:1;padding:10px;border-radius:9px;border:0.5px solid #ddd;background:#F9F8FF;font-size:13px;font-family:inherit;}
+.btn-sm{padding:10px 16px;border-radius:9px;border:none;background:#2D2D6B;color:#fff;cursor:pointer;font-size:13px;font-weight:500;}
+.pct-input{width:55px;padding:8px;border-radius:9px;border:0.5px solid #ddd;background:#F9F8FF;font-size:12px;font-family:inherit;text-align:center;}
+</style>
+</head>
+<body>
+<div class="app">
+
+<div class="header">
+  <h1>📅 Mon Agenda Quotidien</h1>
+  <select class="date-select" id="dateSelect" onchange="changeDate()"></select>
+  <div class="day-label" id="dayLabel"></div>
+</div>
+
+<div class="stats">
+  <div class="stat"><div class="stat-n" id="stTotal">0</div><div class="stat-l">Activités</div></div>
+  <div class="stat"><div class="stat-n" id="stFait">0%</div><div class="stat-l">Complétées</div></div>
+</div>
+
+<div class="tab-row">
+  <button class="tab active" onclick="showTab('agenda')">📅 Agenda</button>
+  <button class="tab" onclick="showTab('habitudes')">🔥 Habitudes</button>
+  <button class="tab" onclick="showTab('objectifs')">🎯 Objectifs</button>
+</div>
+
+<div class="section active" id="tab-agenda">
+  <div class="card">
+    <div class="section-title">Créneaux du jour</div>
+    <div id="slotList"></div>
+  </div>
+</div>
+
+<div class="section" id="tab-habitudes">
+  <div class="card">
+    <div class="section-title">Journal de toutes les activités cochées</div>
+    <div id="habList"></div>
+  </div>
+</div>
+
+<div class="section" id="tab-objectifs">
+  <div class="card">
+    <div class="section-title">Mes objectifs de l'année</div>
+    <div id="objList"></div>
+    <div class="add-obj">
+      <input type="text" id="objInput" placeholder="Ajouter un objectif..." />
+      <button class="btn-sm" onclick="addObj()">+ Ajouter</button>
+    </div>
+  </div>
+</div>
+
+</div>
+<script>
+const STORE_KEY='agenda_v6';
+const OBJ_KEY='agenda_obj_v6';
+const jours=['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+const mois=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+
+const slots=[];
+for(let h=5;h<23;h++){
+  for(let m of[0,30]){
+    if(h===22&&m===30)break;
+    const eh=m===0?h:h+1,em=m===0?30:0;
+    slots.push(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')} – ${String(eh).padStart(2,'0')}:${String(em).padStart(2,'0')}`);
+  }
+}
+
+function dateKey(d){return d.toISOString().slice(0,10);}
+function labelDate(d){return `${jours[d.getDay()]} ${d.getDate()} ${mois[d.getMonth()]} ${d.getFullYear()}`;}
+function getWeekNum(d){const j=new Date(d.getFullYear(),0,1);return Math.ceil(((d-j)/86400000+j.getDay()+1)/7);}
+
+let agendaData={};
+let objData=[];
+let currentKey='';
+
+function loadAll(){
+  try{const r=localStorage.getItem(STORE_KEY);if(r)agendaData=JSON.parse(r);}catch(e){}
+  try{const r=localStorage.getItem(OBJ_KEY);if(r)objData=JSON.parse(r);}catch(e){}
+}
+function saveAgenda(){try{localStorage.setItem(STORE_KEY,JSON.stringify(agendaData));}catch(e){}}
+function saveObj(){try{localStorage.setItem(OBJ_KEY,JSON.stringify(objData));}catch(e){}}
+
+function getDayData(key){
+  if(!agendaData[key])agendaData[key]=slots.map(s=>({slot:s,task:'',planb:'',status:''}));
+  return agendaData[key];
+}
+
+function buildDateSelect(){
+  const sel=document.getElementById('dateSelect');
+  const today=new Date();today.setHours(0,0,0,0);
+  for(let i=-60;i<=305;i++){
+    const d=new Date(today.getTime()+i*86400000);
+    const opt=document.createElement('option');
+    opt.value=dateKey(d);
+    opt.textContent=labelDate(d);
+    if(i===0)opt.selected=true;
+    sel.appendChild(opt);
+  }
+}
+
+function changeDate(){
+  saveAgenda();
+  const sel=document.getElementById('dateSelect');
+  currentKey=sel.value;
+  const d=new Date(currentKey+'T00:00:00');
+  document.getElementById('dayLabel').textContent=`Semaine ${getWeekNum(d)} de l'année`;
+  renderSlots();
+  renderStats();
+}
+
+function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');}
+function statusClass(s){return s==='fait'?'fait':s==='planb'?'planb':s==='encours'?'encours':s==='nonfait'?'nonfait':'';}
+
+// ── CLÉ DU CORRECTIF MOBILE ──
+// On ne re-render JAMAIS pendant la saisie.
+// On lit la valeur au blur (quand l'utilisateur quitte le champ).
+function renderSlots(){
+  const data=getDayData(currentKey);
+  const list=document.getElementById('slotList');
+  list.innerHTML=data.map((row,i)=>{
+    const sc=statusClass(row.status);
+    const showPlanb = row.task.trim().length > 0;
+    return `<div class="slot" id="slot-${i}">
+      <div class="slot-time">${row.slot}</div>
+      <div class="slot-fields">
+        <input class="slot-input"
+          placeholder="Activité..."
+          value="${esc(row.task)}"
+          onblur="saveField(${i},'task',this.value)"
+        />
+        <select class="slot-select ${sc}"
+          onchange="saveStatus(${i},this.value,this)">
+          <option value="">– Statut –</option>
+          <option value="fait"    ${row.status==='fait'    ?'selected':''}>✅ Fait</option>
+          <option value="planb"   ${row.status==='planb'   ?'selected':''}>⏭ Plan B</option>
+          <option value="encours" ${row.status==='encours' ?'selected':''}>⏳ En cours</option>
+          <option value="nonfait" ${row.status==='nonfait' ?'selected':''}>❌ Non fait</option>
+        </select>
+      </div>
+      <div class="planb-wrap" id="pb-${i}" style="display:${showPlanb?'block':'none'}">
+        <input class="planb-input"
+          placeholder="Plan B si non réalisé..."
+          value="${esc(row.planb)}"
+          onblur="saveField(${i},'planb',this.value)"
+        />
+      </div>
+    </div>`;
+  }).join('');
+
+  // Affiche le champ Plan B dès qu'on tape dans Activité (sans re-render)
+  list.querySelectorAll('.slot-input').forEach((inp,i)=>{
+    inp.addEventListener('input', ()=>{
+      document.getElementById('pb-'+i).style.display = inp.value.trim() ? 'block' : 'none';
+    });
+  });
+}
+
+function saveField(i, field, val){
+  const data=getDayData(currentKey);
+  data[i][field]=val;
+  saveAgenda();
+  renderStats();
+  if(field==='status') renderHabitudesIfVisible();
+}
+
+function saveStatus(i, val, el){
+  const data=getDayData(currentKey);
+  data[i].status=val;
+  el.className='slot-select '+statusClass(val);
+  saveAgenda();
+  renderStats();
+  renderHabitudesIfVisible();
+}
+
+function renderStats(){
+  const data=getDayData(currentKey);
+  const withTask=data.filter(r=>r.task.trim());
+  const fait=withTask.filter(r=>r.status==='fait').length;
+  document.getElementById('stTotal').textContent=withTask.length;
+  document.getElementById('stFait').textContent=withTask.length?Math.round(fait/withTask.length*100)+'%':'0%';
+}
+
+function renderHabitudesIfVisible(){
+  if(document.getElementById('tab-habitudes').classList.contains('active')) renderHabitudes();
+}
+
+function renderHabitudes(){
+  const list=document.getElementById('habList');
+  const entries=[];
+  Object.keys(agendaData).sort().forEach(key=>{
+    const d=new Date(key+'T00:00:00');
+    const label=labelDate(d);
+    (agendaData[key]||[]).forEach(row=>{
+      if(row.task&&row.status){
+        entries.push({date:label,task:row.task,status:row.status,slot:row.slot});
+      }
+    });
+  });
+  if(!entries.length){
+    list.innerHTML='<div class="empty">Aucune activité encore.<br>Remplis ton agenda !</div>';
+    return;
+  }
+  list.innerHTML=entries.reverse().slice(0,150).map(e=>{
+    const bc=e.status==='fait'?'b-fait':e.status==='planb'?'b-planb':e.status==='nonfait'?'b-non':'b-en';
+    const bl=e.status==='fait'?'✅ Fait':e.status==='planb'?'⏭ Plan B':e.status==='nonfait'?'❌ Non fait':'⏳ En cours';
+    return `<div class="hab-row">
+      <div>
+        <div class="hab-date">${e.date.split(' ').slice(0,3).join(' ')}</div>
+        <div style="font-size:10px;color:#aaa;">${e.slot}</div>
+      </div>
+      <div class="hab-act">${e.task}</div>
+      <span class="badge ${bc}">${bl}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderObjectifs(){
+  const list=document.getElementById('objList');
+  if(!objData.length){
+    list.innerHTML='<div class="empty">Aucun objectif.<br>Ajoute le premier !</div>';
+    return;
+  }
+  list.innerHTML=objData.map((o,i)=>`
+    <div class="obj-row">
+      <div class="obj-top">
+        <div class="obj-name">${o.name}</div>
+        <input class="pct-input" type="number" min="0" max="100" value="${o.pct||0}"
+          onblur="updateObj(${i},this.value)" />
+        <span style="font-size:12px;color:#888;">%</span>
+      </div>
+      <div class="pbar"><div class="pfill" style="width:${o.pct||0}%"></div></div>
+    </div>`).join('');
+}
+
+function addObj(){
+  const inp=document.getElementById('objInput');
+  const name=inp.value.trim();
+  if(!name)return;
+  objData.push({name,pct:0});
+  inp.value='';
+  saveObj();
+  renderObjectifs();
+}
+
+function updateObj(i,val){
+  objData[i].pct=Math.min(100,Math.max(0,parseInt(val)||0));
+  saveObj();
+  renderObjectifs();
+}
+
+function showTab(name){
+  document.querySelectorAll('.tab').forEach((t,idx)=>{
+    t.classList.toggle('active',['agenda','habitudes','objectifs'][idx]===name);
+  });
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  if(name==='habitudes')renderHabitudes();
+  if(name==='objectifs')renderObjectifs();
+}
+
+loadAll();
+buildDateSelect();
+const sel=document.getElementById('dateSelect');
+currentKey=sel.value;
+const d=new Date(currentKey+'T00:00:00');
+document.getElementById('dayLabel').textContent=`Semaine ${getWeekNum(d)} de l'année`;
+renderSlots();
+renderStats();
+</script>
+</body>
+</html>
